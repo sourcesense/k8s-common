@@ -9,7 +9,6 @@ fi
 req helm jq yq
 
 chart_check(){
-
     usage()
     {
         COLUMNS=$(tput cols) 
@@ -114,3 +113,32 @@ chart_check(){
         helm template "$targetDir" $EXTRA_HELM_OPTIONS --values <(values)
     fi
 }
+
+helm_repo_add() {
+    local repo_name="$1"
+    local repo_url="$2"
+    log "Checking helm repository $(b "$repo_name") - URL: $(b "$repo_url")"
+    if helm repo add "$repo_name" "$repo_url" --no-update 2>/dev/null ; then
+        log "Repository $(b "$repo_name") added just now, performing update"
+        helm repo update
+        log "Completed update of $(b "$repo_name") from URL $(b "$repo_url")"
+    else
+        log "Repository $(b "$repo_name") was already present, nothing to update"
+    fi
+}
+
+prepare_helm_plugin() {
+    local plugin_name="$1"
+    local plugin_url="$2"
+    if helm plugin install "$plugin_url" 2>/dev/null ; then
+        log "Installed $(b "${plugin_name}" plugin)"
+    else
+        log "$(b "${plugin_name}" plugin) appears to be already installed, nothing to do"
+    fi
+}
+
+h() {
+    local params=("$@")
+    helm --namespace "$NAMESPACE" "${params[@]}"
+}
+
