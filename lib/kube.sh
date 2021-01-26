@@ -6,8 +6,7 @@ else
     include log2/shell-common lib/log.sh
 fi
 
-req kubectl
-req_no_ver wc
+req_no_ver kubectl wc
 
 k() {
     local params=("$@")
