@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 if type dep &>/dev/null ; then
-    dep include EcoMind/k8s-common:0.2.1 kube
+    dep include EcoMind/k8s-common kube
 else
     include EcoMind/k8s-common lib/kube.sh
 fi
 
 if type dep &>/dev/null ; then
-    dep include EcoMind/k8s-common:0.2.1 helm
+    dep include EcoMind/k8s-common helm
 else
     include EcoMind/k8s-common lib/helm.sh
 fi

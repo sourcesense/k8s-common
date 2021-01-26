@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if type dep &>/dev/null ; then
-    dep include EcoMind/k8s-common:0.2.1 kube-config
+    dep include EcoMind/k8s-common kube-config
 else
     include EcoMind/k8s-common lib/kube-config.sh
 fi

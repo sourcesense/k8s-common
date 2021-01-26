@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
 if type dep &>/dev/null ; then
-    dep include log2/shell-common:0.2.0 log
+    dep include log2/shell-common log
 else
     include log2/shell-common lib/log.sh
 fi
 
-req kubectl wc
+req kubectl
+req_no_ver wc
 
 k() {
     local params=("$@")

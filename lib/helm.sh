@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if type dep &>/dev/null ; then
-    dep include log2/shell-common:0.2.0 log
+    dep include log2/shell-common log
 else
     include log2/shell-common lib/log.sh
 fi
@@ -70,8 +70,8 @@ chart_check(){
     }
 
     values() {
-        if [[ -n $(yq r - "kind" <"$valuesFile") ]] ; then
-            yq r - "spec.values" <"$valuesFile"
+        if [[ -n $(yq e '.kind // ""' "$valuesFile") ]] ; then
+            yq e '.spec.values' "$valuesFile"
         else
             cat "$valuesFile"
         fi
@@ -83,11 +83,11 @@ chart_check(){
 
     REQS=$targetDir/requirements.yaml
     if [[ -f $REQS ]] ; then
-        start_log_line "Checking charts $(b "$targetDir") depends upon"
-        emit " ... found $(b "$(yq r "$REQS" -l 'dependencies')") dependencies"
-        for P in $(yq r "$REQS" --printMode p 'dependencies.*') ; do
-            DEP=$(yq r "$REQS" "$P.name")
-            VER=$(yq r "$REQS" "$P.version")
+        start_log_line "Checking charts $(b "$targetDir") depends upon (old style)"
+        emit " ... found $(b "$(yq e '.dependencies | length' "$REQS")") dependencies"
+        for I in $(yq e '.dependencies[] | path | .[-1]' "$REQS") ; do
+            DEP=$(yq e .dependencies\["$I"\].name "$REQS" )
+            VER=$(yq e .dependencies\["$I"\].version "$REQS" )
             emit " ... checking $(b "$DEP") $(b "$VER")"
             TGZ="$targetDir/charts/$DEP-$VER.tgz"
             if [ -s "$TGZ" ]; then
@@ -98,8 +98,28 @@ chart_check(){
                 whine "Please provide it by running $(b helm dep update "$targetDir") and re-run this script"
             fi
         done
+        end_log_line " everything looks fine!"
     fi
-    end_log_line " everything looks fine!"
+    CHART=$targetDir/Chart.yaml
+    if (( $(yq e '.dependencies | length' "$CHART") > 0 )); then
+        start_log_line "Checking charts $(b "$targetDir") depends upon (new style)"
+        emit " ... found $(b "$(yq e '.dependencies | length' "$CHART")") dependencies"
+        for I in $(yq e '.dependencies[] | path | .[-1]' "$CHART") ; do
+            DEP=$(yq e .dependencies\["$I"\].name "$CHART" )
+            VER=$(yq e .dependencies\["$I"\].version "$CHART" )
+            emit " ... checking $(b "$DEP") $(b "$VER")"
+            TGZ="$targetDir/charts/$DEP-$VER.tgz"
+            if [ -s "$TGZ" ]; then
+                end_log_line "(OK)"
+            else
+                end_log_line_err " FAIL!"
+                warn "Could not find archive for $(b "$DEP") $(b "$VER"), i.e., file $(b "$TGZ")." >&2 
+                whine "Please provide it by running $(b helm dep update "$targetDir") and re-run this script"
+            fi
+        done
+        end_log_line " everything looks fine!"
+    fi
+
 
     start_log_line "Checking helm chart $(b "$targetDir") ..."
     if helm lint "$targetDir" --values <(values); then
