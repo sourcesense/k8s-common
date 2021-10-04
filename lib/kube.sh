@@ -101,7 +101,7 @@ pod_exists() {
 kill_pod_silently() {
     local namespace="$1"
     local podname="$2"
-    k delete --force --grace-period=0 "pod/$podname" --ignore-not-found=true
+    k delete --force --grace-period=0 -n "$namespace" "pod/$podname" --ignore-not-found=true
 }
 
 
