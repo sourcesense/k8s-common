@@ -47,20 +47,20 @@ prepare_and_check_k8s_context_generic() {
     local context_name="${1:-"${RESOURCE_GROUP}-cluster"}"
     local cluster_description
 
-    log "Searching for accessibility of k8s context $(b "${context_name}")"
+    log "Searching for accessibility of k8s context $(green "$(b "${context_name}")")"
     if has_context "${context_name}"; then
-        log "k8s context $(b "${context_name}") is accessible, switching to it"
+        log "k8s context $(green "$(b "${context_name}")") is accessible, switching to it"
         kubectx "${context_name}" >/dev/null 2>&1
     else
         whine "k8s context $(b "${context_name}") is not accessible, check your env"
     fi
-    cluster_description="context: $(b "$(kubectx -c)")"
+    cluster_description="$(green "context: $(b "$(kubectx -c)")")"
     log "Switched to k8s ${cluster_description}"
 
     log "Checking Kubernetes accessibility - ${cluster_description}"
     if kubectl version >/dev/null 2>&1 ; then
         log "Found valid Kubernetes accessibility - ${cluster_description}"
-        log "Server version: $(b "$(get_kube_server_version)")"
+        log "Server version: $(green "$(b "$(get_kube_server_version)")")"
     else 
         whine "Couldn't access Kubernetes right now, please fix it"
     fi
