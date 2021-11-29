@@ -62,7 +62,7 @@ prepare_and_check_k8s_context_generic() {
         log "Found valid Kubernetes accessibility - ${cluster_description}"
         log "Server version: $(green "$(b "$(get_kube_server_version)")")"
     else 
-        whine "Couldn't access Kubernetes right now, please fix it"
+        whine "Couldn't access Kubernetes right now, please fix it, or retry running a $(b "direnv reload")"
     fi
 }
 
