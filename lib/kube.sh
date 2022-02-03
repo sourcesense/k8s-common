@@ -41,7 +41,7 @@ wait_for_state() {
     local state="$3"
     local resource_description="$4"
     log "Waiting $(b "$wait_time") for $resource_description to become $(b "$state")..."
-    if k wait "--for=condition=$state" --timeout=2m "$what" ; then
+    if k wait "--for=condition=$state" "--timeout=$wait_time" "$what" ; then
         log "$resource_description is confirmed to be $(b "$state")"
     else
         whine "Could not wait for $resource_description to be $(b "$state"), exiting right now"
@@ -75,7 +75,7 @@ get_single_pod_name() {
 
 kube_resource_exists() {
     local resource_name="$1"
-    k get "$resource_name" >/dev/null 2>&1 
+    k get "$resource_name" >/dev/null 2>&1
 }
 
 create_namespace_if_not_exists() {
