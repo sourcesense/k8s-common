@@ -11,8 +11,8 @@ req helm jq yq
 chart_check(){
     usage()
     {
-        COLUMNS=$(tput cols) 
-        title="Analyse Helm chart to check for anomalies" 
+        COLUMNS=$(tput cols)
+        title="Analyse Helm chart to check for anomalies"
         printf "%*s\n" $(( ( ${#title} + COLUMNS ) / 2 )) "$title"
         log ""
         log "DESCRIPTION:"
@@ -38,16 +38,16 @@ chart_check(){
             -s | --show)
                 SHOW_CONTENT=true
                 shift
-                ;;	
+                ;;
             -d | --debug)
                 DEBUG=true
                 shift
                 ;;
-            -h | --help )           
+            -h | --help )
                 usage
                 exit
                 ;;
-            # * ) 
+            # * )
             #     usage
             #     exit 1
         esac
@@ -70,16 +70,20 @@ chart_check(){
     }
 
     values() {
-        if [[ -n $(yq e '.kind // ""' "$valuesFile") ]] ; then
-            yq e '.spec.values' "$valuesFile"
-        else
+        if [[ $valuesFile == /dev/* ]]; then
             cat "$valuesFile"
+        else
+            if [[ -n $(yq e '.kind // ""' "$valuesFile") ]] ; then
+                yq e '.spec.values' "$valuesFile"
+            else
+                cat "$valuesFile"
+            fi
         fi
     }
 
     if [ -n "$DEBUG" ]; then
         EXTRA_HELM_OPTIONS="--debug"
-    fi 
+    fi
 
     REQS=$targetDir/requirements.yaml
     if [[ -f $REQS ]] ; then
@@ -94,7 +98,7 @@ chart_check(){
                 end_log_line "(OK)"
             else
                 end_log_line_err " FAIL!"
-                warn "Could not find archive for $(b "$DEP") $(b "$VER"), i.e., file $(b "$TGZ")." >&2 
+                warn "Could not find archive for $(b "$DEP") $(b "$VER"), i.e., file $(b "$TGZ")." >&2
                 whine "Please provide it by running $(b helm dep update "$targetDir") and re-run this script"
             fi
         done
@@ -113,7 +117,7 @@ chart_check(){
                 end_log_line "(OK)"
             else
                 end_log_line_err " FAIL!"
-                warn "Could not find archive for $(b "$DEP") $(b "$VER"), i.e., file $(b "$TGZ")." >&2 
+                warn "Could not find archive for $(b "$DEP") $(b "$VER"), i.e., file $(b "$TGZ")." >&2
                 whine "Please provide it by running $(b helm dep update "$targetDir") and re-run this script"
             fi
         done
