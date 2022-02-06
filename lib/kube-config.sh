@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-if type dep &>/dev/null ; then
+if type dep &>/dev/null; then
     dep include EcoMind/k8s-common kube
 else
     include EcoMind/k8s-common lib/kube.sh
 fi
 
-if type dep &>/dev/null ; then
+if type dep &>/dev/null; then
     dep include EcoMind/k8s-common helm
 else
     include EcoMind/k8s-common lib/helm.sh
@@ -17,7 +17,74 @@ get_kube_server_version() {
 }
 
 get_kube_client_version() {
-    kubectl version --short | head | cut -d":" -f 2 | xargs
+    kubectl version --client=true --short | head | cut -d":" -f 2 | xargs
+}
+
+ab() {
+    # Accent + bold
+    green "$(b "$*")"
+}
+
+source_if_exists() {
+    local whatToSource="$1"
+    # shellcheck disable=SC1090
+    [ -e "$whatToSource" ] && . "$whatToSource"
+}
+
+ensure_asdf() {
+    if exists asdf; then
+        # Ensure that asdf integration is installed
+        source_if_exists "$HOME/.asdf/asdf.sh"
+        if exists brew; then
+            source_if_exists "$(brew --prefix asdf)/libexec/asdf.sh"
+        fi
+    else
+        whine "asdf not installed"
+    fi
+}
+
+ensure_asdf_plugin() {
+    local pluginName="$1"
+    if ensure_asdf; then
+        if ! (asdf plugin-list | grep -q "$pluginName"); then
+            asdf plugin-add "$pluginName" >/dev/null 2>&1
+        fi
+    else
+        whine "Can't install plugin $(ab "$pluginName") in asdf"
+    fi
+}
+
+ensure_asdf_plugin_version() {
+    local pluginName="$1"
+    local version="$2"
+    if ensure_asdf_plugin "$pluginName"; then
+        log "Ensuring that $(ab "$pluginName") version $(ab "$version") is installed in asdf"
+        if asdf shim-versions "$pluginName" | grep -q "version"; then
+            log "Version $(ab "$version") of $(ab "$pluginName") is already installed"
+        else
+            asdf plugin-update "$pluginName" >/dev/null 2>&1
+            if asdf install "$pluginName" "$version" >/dev/null 2>&1; then
+                log "$(ab "$pluginName") version $(ab "$version") is installed in asdf"
+            else
+                whine "Couldn't install $(ab "$pluginName") version $(ab "$version") in asdf"
+            fi
+        fi
+    fi
+}
+
+set_asdf_kubectl_version() {
+    local version="$1"
+    rawVersion="$(echo "$version" | cut -c2-)"
+    if ensure_asdf_plugin_version kubectl "$rawVersion"; then
+        log "Setting kubectl version $(ab "$rawVersion") in asdf as shell (env) version"
+        if asdf shell kubectl "$rawVersion"; then
+            log "Successfully set kubectl version $(ab "$rawVersion") in asdf as shell (env) version"
+        else
+            whine "Couldn't set kubectl version $(b "$rawVersion") in asdf as shell (env) version"
+        fi
+    else
+        whine "kubectl version $(ab "$rawVersion") is not installed in asdf and couldn't install"
+    fi
 }
 
 regenerate_token() {
@@ -40,17 +107,17 @@ watch_if_exists() {
 
 has_context() {
     local context_name="$1"
-    kubectx | grep -q "$context_name"
+    kubectl config get-contexts | grep -q "$context_name"
 }
 
 prepare_and_check_k8s_context_generic() {
-    local context_name="${1:-"${RESOURCE_GROUP}-cluster"}"
+    local context_name="${1:-"${CLUSTER_NAME}"}"
     local cluster_description
 
-    log "Searching for accessibility of k8s context $(green "$(b "${context_name}")")"
+    log "Searching for accessibility of k8s context $(ab "${context_name}")"
     if has_context "${context_name}"; then
-        log "k8s context $(green "$(b "${context_name}")") is accessible, switching to it"
-        kubectx "${context_name}" >/dev/null 2>&1
+        log "k8s context $(ab "${context_name}") is accessible, switching to it"
+        kubectl config set-context "${context_name}" >/dev/null 2>&1
     else
         whine "k8s context $(b "${context_name}") is not accessible, check your env"
     fi
@@ -58,10 +125,14 @@ prepare_and_check_k8s_context_generic() {
     log "Switched to k8s ${cluster_description}"
 
     log "Checking Kubernetes accessibility - ${cluster_description}"
-    if kubectl version >/dev/null 2>&1 ; then
+    versionOutput="$(kubectl version --short 2>/dev/null)"
+    if (("$(echo "$versionOutput" | wc -l)" >= 2)); then
         log "Found valid Kubernetes accessibility - ${cluster_description}"
-        log "Server version: $(green "$(b "$(get_kube_server_version)")")"
-    else 
+        serverVersion="$(echo "$versionOutput" | tail -1 | cut -d":" -f 2 | xargs)"
+        log "Server version: $(ab "$serverVersion")"
+        set_asdf_kubectl_version "$serverVersion"
+        log "Done! No version skew between client version $(ab "$(get_kube_client_version)") and server version $(ab "$serverVersion")"
+    else
         whine "Couldn't access Kubernetes right now, please fix it, or retry running a $(b "direnv reload")"
     fi
 }
@@ -88,11 +159,11 @@ prepare_and_check_k8s_context() {
         cluster_description="context: $(b "$(kubectx -c)") - AWS_PROFILE = $(b "${AWS_PROFILE}")"
     fi
     log "Checking Kubernetes accessibility - ${cluster_description}"
-    if kubectl version >/dev/null 2>&1 ; then
+    if kubectl version >/dev/null 2>&1; then
         log "Found valid Kubernetes accessibility - ${cluster_description}"
         log "Server version: $(b "$(get_kube_server_version)")"
         log "No need to regenerate token"
-    else 
+    else
         warn "Couldn't access Kubernetes right now with stored token, please fix it"
         warn "Please enter your password when prompt appears; also, $(i "there's no need to worry if direnv whines about long running .envrc script")"
         regenerate_token
@@ -102,4 +173,3 @@ prepare_and_check_k8s_context() {
 prepare_helm_secrets_plugin() {
     prepare_helm_plugin "Helm secrets" https://github.com/futuresimple/helm-secrets
 }
-
