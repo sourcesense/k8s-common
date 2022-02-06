@@ -74,7 +74,7 @@ ensure_asdf_plugin_version() {
 
 set_asdf_kubectl_version() {
     local version="$1"
-    rawVersion="$(echo "$version" | cut -c2-)"
+    rawVersion="$(echo "$version" | cut -c2- | cut -d- -f1)"
     if ensure_asdf_plugin_version kubectl "$rawVersion"; then
         log "Setting kubectl version $(ab "$rawVersion") in asdf as shell (env) version"
         if asdf shell kubectl "$rawVersion"; then
