@@ -2,11 +2,14 @@
 
 if type dep &>/dev/null ; then
     dep include log2/shell-common log
+    dep include log2/shell-common req
 else
     include log2/shell-common lib/log.sh
+    include log2/shell-common lib/req.sh
 fi
 
-req_no_ver kubectl wc
+req kubectl
+req_no_ver wc
 
 k() {
     local params=("$@")

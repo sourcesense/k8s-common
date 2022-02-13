@@ -2,14 +2,12 @@
 
 if type dep &>/dev/null; then
     dep include EcoMind/k8s-common kube
-else
-    include EcoMind/k8s-common lib/kube.sh
-fi
-
-if type dep &>/dev/null; then
     dep include EcoMind/k8s-common helm
+    dep include log2/shell-common asdf
 else
     include EcoMind/k8s-common lib/helm.sh
+    include EcoMind/k8s-common lib/kube.sh
+    include log2/shell-common lib/asdf.sh
 fi
 
 get_kube_server_version() {
@@ -20,71 +18,10 @@ get_kube_client_version() {
     kubectl version --client=true --short | head | cut -d":" -f 2 | xargs
 }
 
-ab() {
-    # Accent + bold
-    green "$(b "$*")"
-}
-
-source_if_exists() {
-    local whatToSource="$1"
-    # shellcheck disable=SC1090
-    [ -e "$whatToSource" ] && . "$whatToSource"
-}
-
-ensure_asdf() {
-    if exists asdf; then
-        # Ensure that asdf integration is installed
-        source_if_exists "$HOME/.asdf/asdf.sh"
-        if exists brew; then
-            source_if_exists "$(brew --prefix asdf)/libexec/asdf.sh"
-        fi
-    else
-        whine "asdf not installed"
-    fi
-}
-
-ensure_asdf_plugin() {
-    local pluginName="$1"
-    if ensure_asdf; then
-        if ! (asdf plugin-list | grep -q "$pluginName"); then
-            asdf plugin-add "$pluginName" >/dev/null 2>&1
-        fi
-    else
-        whine "Can't install plugin $(ab "$pluginName") in asdf"
-    fi
-}
-
-ensure_asdf_plugin_version() {
-    local pluginName="$1"
-    local version="$2"
-    if ensure_asdf_plugin "$pluginName"; then
-        log "Ensuring that $(ab "$pluginName") version $(ab "$version") is installed in asdf"
-        if asdf shim-versions "$pluginName" | grep -q "version"; then
-            log "Version $(ab "$version") of $(ab "$pluginName") is already installed"
-        else
-            asdf plugin-update "$pluginName" >/dev/null 2>&1
-            if asdf install "$pluginName" "$version" >/dev/null 2>&1; then
-                log "$(ab "$pluginName") version $(ab "$version") is installed in asdf"
-            else
-                whine "Couldn't install $(ab "$pluginName") version $(ab "$version") in asdf"
-            fi
-        fi
-    fi
-}
-
 set_asdf_kubectl_version() {
     local version="$1"
     rawVersion="$(echo "$version" | cut -c2- | cut -d- -f1)"
-    if ensure_asdf_plugin_version kubectl "$rawVersion"; then
-        log "Setting kubectl version $(ab "$rawVersion") in asdf as shell (env) version"
-        if asdf shell kubectl "$rawVersion"; then
-            log "Successfully set kubectl version $(ab "$rawVersion") in asdf as shell (env) version"
-        else
-            whine "Couldn't set kubectl version $(b "$rawVersion") in asdf as shell (env) version"
-        fi
-    else
-        whine "kubectl version $(ab "$rawVersion") is not installed in asdf and couldn't install"
-    fi
+    ensure_asdf_plugin_version_shell kubectl "$rawVersion"
 }
 
 regenerate_token() {

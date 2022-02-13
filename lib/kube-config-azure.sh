@@ -6,6 +6,8 @@ else
     include EcoMind/k8s-common lib/kube-config.sh
 fi
 
+req az
+
 set_azure_profile() {
     local azure_profile_name="$1"
     # TBD
