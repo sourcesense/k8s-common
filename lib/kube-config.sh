@@ -10,6 +10,9 @@ else
     include log2/shell-common lib/asdf.sh
 fi
 
+req_no_ver head tail cut xargs
+req grep
+
 get_kube_server_version() {
     kubectl version --short | tail -1 | cut -d":" -f 2 | xargs
 }
@@ -47,20 +50,18 @@ has_context() {
     kubectl config get-contexts | grep -q "$context_name"
 }
 
-prepare_and_check_k8s_context_generic() {
-    local context_name="${1:-"${CLUSTER_NAME}"}"
-    local cluster_description
+_set_context() {
+    local context_name="$1"
+    kubectl config set-context "${context_name}" >/dev/null 2>&1
+}
 
-    log "Searching for accessibility of k8s context $(ab "${context_name}")"
-    if has_context "${context_name}"; then
-        log "k8s context $(ab "${context_name}") is accessible, switching to it"
-        kubectl config set-context "${context_name}" >/dev/null 2>&1
-    else
-        whine "k8s context $(b "${context_name}") is not accessible, check your env"
-    fi
-    cluster_description="$(green "context: $(b "$(kubectx -c)")")"
+_describe_context() {
+    a "context: $(b "$(kubectl config current-context)")"
+}
+
+_check_and_set_kubectl_version() {
+    cluster_description="${cluster_description:-$(_describe_context)}"
     log "Switched to k8s ${cluster_description}"
-
     log "Checking Kubernetes accessibility - ${cluster_description}"
     versionOutput="$(kubectl version --short 2>/dev/null)"
     if (("$(echo "$versionOutput" | wc -l)" >= 2)); then
@@ -74,37 +75,42 @@ prepare_and_check_k8s_context_generic() {
     fi
 }
 
+prepare_and_check_k8s_context_generic() {
+    local context_name="${1:-"${CLUSTER_NAME}"}"
+
+    log "Searching for accessibility of k8s context $(ab "${context_name}")"
+    if has_context "${context_name}"; then
+        log "k8s context $(ab "${context_name}") is accessible, switching to it"
+        _set_context "${context_name}"
+    else
+        whine "k8s context $(ab "${context_name}") is not accessible, check your env"
+    fi
+
+    _check_and_set_kubectl_version
+}
+
 # deprecated
 prepare_and_check_k8s_context() {
     local context_prefix="$1"
     local cluster_description
     if [ -z "${AWS_PROFILE}" ]; then
-        kubectx "${context_prefix}"
-        cluster_description="context: $(b "$(kubectx -c)")"
+        _set_context  "${context_prefix}"
+        cluster_description="$(_describe_context)"
     else
         local context_name="${context_prefix}-$AWS_PROFILE"
-        log "Searching for accessibility of k8s context $(b "$context_name")"
+        log "Searching for accessibility of k8s context $(ab "$context_name")"
         if has_context "$context_name"; then
-            log "k8s context $(b "$context_name") is accessible, switching to it"
-            kubectx "${context_name}"
+            log "k8s context $(ab "$context_name") is accessible, switching to it"
+            _set_context "${context_name}"
         else
-            log "k8s context $(b "$context_name") is not accessible, trying with $(b "$context_prefix")"
+            log "k8s context $(ab "$context_name") is not accessible, trying with $(ab "$context_prefix")"
             context_name="$context_prefix"
-            kubectx "${context_name}"
+            _set_context "${context_name}"
         fi
-        log "Switched to k8s context $(b "$(kubectx -c)")"
-        cluster_description="context: $(b "$(kubectx -c)") - AWS_PROFILE = $(b "${AWS_PROFILE}")"
+        log "Switched to k8s context $(ab "$(kubectl config current-context)")"
+        cluster_description="$(_describe_context) - AWS_PROFILE = $(ab "${AWS_PROFILE}")"
     fi
-    log "Checking Kubernetes accessibility - ${cluster_description}"
-    if kubectl version >/dev/null 2>&1; then
-        log "Found valid Kubernetes accessibility - ${cluster_description}"
-        log "Server version: $(b "$(get_kube_server_version)")"
-        log "No need to regenerate token"
-    else
-        warn "Couldn't access Kubernetes right now with stored token, please fix it"
-        warn "Please enter your password when prompt appears; also, $(i "there's no need to worry if direnv whines about long running .envrc script")"
-        regenerate_token
-    fi
+    _check_and_set_kubectl_version "$cluster_description"
 }
 
 prepare_helm_secrets_plugin() {
