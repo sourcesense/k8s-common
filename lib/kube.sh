@@ -8,7 +8,7 @@ else
     include log2/shell-common lib/req.sh
 fi
 
-req kubectl
+req_ver kubectl
 req_no_ver wc
 
 k() {
