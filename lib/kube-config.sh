@@ -68,8 +68,14 @@ _check_and_set_kubectl_version() {
         log "Found valid Kubernetes accessibility - ${cluster_description}"
         serverVersion="$(echo "$versionOutput" | tail -1 | cut -d":" -f 2 | xargs)"
         log "Server version: $(ab "$serverVersion")"
-        set_asdf_kubectl_version "$serverVersion"
-        log "Done! No version skew between client version $(ab "$(get_kube_client_version)") and server version $(ab "$serverVersion")"
+        if exists asdf; then
+            set_asdf_kubectl_version "$serverVersion"
+            log "Done! No version skew between client version $(ab "$(get_kube_client_version)") and server version $(ab "$serverVersion")"
+        else
+            warn "Could not set kubectl version via asdf, asdf is not available."
+            warn "Will use current kubectl version $(ab "$(get_kube_client_version)")"
+            warn "Beware: this may produce version skew issues with Kubernetes server."
+        fi
     else
         whine "Couldn't access Kubernetes right now, please fix it, or retry running a $(b "direnv reload")"
     fi
