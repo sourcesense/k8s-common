@@ -77,7 +77,7 @@ _check_and_set_kubectl_version() {
             warn "Beware: this may produce version skew issues with Kubernetes server."
         fi
     else
-        whine "Couldn't access Kubernetes right now, please fix it, or retry running a $(b "direnv reload")"
+        warn "$(red "BEWARE: at this point, Kubernetes should be reachable, but it's not... Couldn't access Kubernetes right now, please fix it, or retry running a $(b "direnv reload")")"
     fi
 }
 
