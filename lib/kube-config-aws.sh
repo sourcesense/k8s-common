@@ -6,7 +6,7 @@ else
     include EcoMind/k8s-common lib/kube-config.sh
 fi
 
-req_ver aws 2.4.18 awscli
+req_ver aws 2.7.7 awscli
 
 set_aws_profile() {
     local aws_profile_name="$1"
