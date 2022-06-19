@@ -23,7 +23,8 @@ get_kube_client_version() {
 
 set_asdf_kubectl_version() {
     local version="$1"
-    rawVersion="$(echo "$version" | cut -c2- | cut -d- -f1)"
+    # NOTE: next line will drop any eventual asdf version containeing dash and plus, installing instead the stripped version
+    rawVersion="$(echo "$version" | cut -c2- | cut -d- -f1 | cut -d+ -f1)"
     ensure_asdf_plugin_version_shell kubectl "$rawVersion"
 }
 
