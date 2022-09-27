@@ -65,7 +65,7 @@ _check_and_set_kubectl_version() {
     log "Switched to k8s ${cluster_description}"
     log "Checking Kubernetes accessibility - ${cluster_description}"
     versionOutput="$(kubectl version --short 2>/dev/null)"
-    if (("$(echo "$versionOutput" | wc -l)" >= 2)); then
+    if (("$(echo "$versionOutput" | grep -ic "server")" >= 1)); then
         log "Found valid Kubernetes accessibility - ${cluster_description}"
         serverVersion="$(echo "$versionOutput" | tail -1 | cut -d":" -f 2 | xargs)"
         log "Server version: $(ab "$serverVersion")"
