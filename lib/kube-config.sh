@@ -48,7 +48,7 @@ watch_if_exists() {
 
 has_context() {
     local context_name="$1"
-    kubectl config get-contexts | grep -q "$context_name"
+    kubectl config get-contexts 2>/dev/null | grep -q "$context_name"
 }
 
 _set_context() {
@@ -57,7 +57,7 @@ _set_context() {
 }
 
 _describe_context() {
-    a "context: $(b "$(kubectl config current-context)")"
+    a "context: $(b "$(kubectl config current-context 2>/dev/null)")"
 }
 
 _check_and_set_kubectl_version() {
@@ -114,7 +114,7 @@ prepare_and_check_k8s_context() {
             context_name="$context_prefix"
             _set_context "${context_name}"
         fi
-        log "Switched to k8s context $(ab "$(kubectl config current-context)")"
+        log "Switched to k8s context $(ab "$(kubectl config current-context 2>/dev/null)")"
         cluster_description="$(_describe_context) - AWS_PROFILE = $(ab "${AWS_PROFILE}")"
     fi
     _check_and_set_kubectl_version "$cluster_description"
