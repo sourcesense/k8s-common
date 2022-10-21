@@ -8,9 +8,9 @@ else
     include log2/shell-common lib/req.sh
 fi
 
-req_ver helm 3.8.0
+req_ver helm 3.10.1
 req_ver jq 1.6
-req_ver yq 4.20.1
+req_ver yq 4.28.2
 
 chart_check(){
     usage()
