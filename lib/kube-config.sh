@@ -14,11 +14,11 @@ req_no_ver head tail cut xargs
 req grep
 
 get_kube_server_version() {
-    kubectl version --short | tail -1 | cut -d":" -f 2 | xargs
+    kubectl version -o json 2> /dev/null | jq -r ".serverVersion.gitVersion"
 }
 
 get_kube_client_version() {
-    kubectl version --client=true --short | head | cut -d":" -f 2 | xargs
+    kubectl version -o json 2> /dev/null | jq -r ".clientVersion.gitVersion"
 }
 
 set_asdf_kubectl_version() {
