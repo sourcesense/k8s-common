@@ -170,3 +170,35 @@ h() {
     helm --namespace "$NAMESPACE" "${params[@]}"
 }
 
+helm_test_build() {
+    testdir="test"
+    common="$testdir/common/values-common.yaml"
+
+    target=target
+    if [ -z "$target" ]; then
+        whine "Target directory is not set, can't continue"
+    fi
+    if [ -d "$target" ]; then
+        log "Target directory $(b "$target") already exists, cleaning it up"
+        \rm -rf "$target"
+    fi
+    mkdir -p "$target"
+    for test in "$testdir"/*.yaml
+    do
+        name=${test%.yaml}
+        name=${name#test/values-}
+        description="$(ab "$name") (file: $(ab "$test"))"
+        log "Testing with values $description (common: $(ab "$common"))"
+        tempValues="$target/$name-temp-values.yaml"
+        yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' "$common" "$test" >"$tempValues"
+        chart_check "$tempValues" .
+        log "Checking for unpopulated values in: $description"
+        tempResult="$target/$name-temp-result.yaml"
+        helm template . -f "$tempValues" >"$tempResult"
+        if grep -B2 -A2 "\$_XXX" <"$tempResult" ; then
+            whine "Unpopulated values found in: $description"
+        else
+            log "No unpopulated values found in: $description"
+        fi
+    done
+}
