@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 if type dep &>/dev/null ; then
-    dep include EcoMind/k8s-common kube-config
+    dep include sourcesense/k8s-common kube-config
 else
-    include EcoMind/k8s-common lib/kube-config.sh
+    include sourcesense/k8s-common lib/kube-config.sh
 fi
 
 req_ver aws 2.8.7 awscli
